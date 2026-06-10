@@ -76,8 +76,13 @@ def pdf_path_for(entry) -> Path:
 def render_pdf(page, url: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     page.goto(url, wait_until="networkidle", timeout=PAGE_TIMEOUT_MS)
-    # Give late-loading images a moment to finish
-    page.wait_for_timeout(2000)
+    # Wait for main content to be visible (article or post content)
+    try:
+        page.wait_for_selector("body > *", timeout=PAGE_TIMEOUT_MS)
+    except Exception:
+        pass  # Page might not have complex DOM, but that's okay
+    # Give late-loading images and dynamic content time to render
+    page.wait_for_timeout(3500)
     page.pdf(
         path=str(destination),
         format="Letter",
