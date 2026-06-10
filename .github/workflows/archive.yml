@@ -1,0 +1,46 @@
+name: Archive DePaulia stories
+
+on:
+  schedule:
+    # Mondays at 22:17 UTC = 5:17pm Chicago during daylight time
+    # (GitHub cron is UTC and ignores DST, so this drifts to 4:17pm CST in winter)
+    - cron: "17 22 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Run archiver
+        run: python scripts/archive.py
+
+      - name: Commit new PDFs
+        run: |
+          git config user.name "depaulia-archive-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add pdfs archive
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+          else
+            git commit -m "Archive new stories ($(date -u +%Y-%m-%d\ %H:%M) UTC)"
+            git push
+          fi
