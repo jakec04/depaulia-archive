@@ -83,6 +83,8 @@ def render_pdf(page, url: str, destination: Path) -> None:
         pass  # Page might not have complex DOM, but that's okay
     # Give late-loading images and dynamic content time to render
     page.wait_for_timeout(3500)
+    # Force screen CSS so print-only stylesheets don't hide the article body
+    page.emulate_media(media="screen")
     page.pdf(
         path=str(destination),
         format="Letter",
